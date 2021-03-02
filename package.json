@@ -1,0 +1,35 @@
+{
+  "name": "ethereumads-smart-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts of the EthereumAds platform",
+  "main": "run-tests.sh",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^3.4.0",
+    "@openzeppelin/truffle-upgrades": "^1.5.0",
+    "@truffle/hdwallet-provider": "^1.2.2",
+    "chai": "^4.3.0",
+    "chai-as-promised": "^7.1.1",
+    "dotenv": "^8.2.0",
+    "ganache-cli": "^6.12.2",
+    "keccak256": "^1.0.2",
+    "package-lock.json": "^1.0.0",
+    "truffle": "^5.2.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EthereumAds/ethereumads-smart-contracts.git"
+  },
+  "author": "EthereumAds Team <info@ethereumads.com>",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/EthereumAds/ethereumads-smart-contracts/issues"
+  },
+  "homepage": "https://github.com/EthereumAds/ethereumads-smart-contracts#readme"
+}
