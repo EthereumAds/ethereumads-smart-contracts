@@ -118,7 +118,7 @@ library EthereumAdsLib {
         return true;
     }
 
-        function countNonZero(uint[] memory _arr) internal pure returns(uint) {
+    function countNonZero(uint[] memory _arr) internal pure returns(uint) {
         uint count = 0; 
         for (uint i=0; i<_arr.length; i++) {
             if (_arr[i] != 0) {
@@ -140,17 +140,17 @@ library EthereumAdsLib {
     }
 
 
-    function concatenateUintArrays(uint[] memory _Accounts, uint[] memory _Accounts2) internal pure returns(uint[] memory) {
-        uint[] memory returnArr = new uint[](_Accounts.length + _Accounts2.length);
+    function concatenateUintArrays(uint[] memory _array1, uint[] memory _array2) internal pure returns(uint[] memory) {
+        uint[] memory returnArr = new uint[](_array1.length + _array2.length);
 
         uint i=0;
-        for (; i < _Accounts.length; i++) {
-            returnArr[i] = _Accounts[i];
+        for (; i < _array1.length; i++) {
+            returnArr[i] = _array1[i];
         }
 
         uint j=0;
-        while (j < _Accounts.length) {
-            returnArr[i++] = _Accounts2[j++];
+        while (j < _array1.length) {
+            returnArr[i++] = _array2[j++];
         }
         return returnArr;
     } 
