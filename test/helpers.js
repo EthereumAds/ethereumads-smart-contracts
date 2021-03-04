@@ -128,8 +128,8 @@ async function showBalances(onlyName = "", caption = "") {
 
 async function stakeValPool(_valPoolAddr, _validatorAddr) {
     const ethereumAdsValidatorPools = await EthereumAdsValidatorPools.deployed();
-    await eadToken.approve(ethereumAdsValidatorPools.address, web3.utils.toWei('10', 'ether'), { from: accs.adminAddr });
-    await ethereumAdsValidatorPools.stake(_valPoolAddr, web3.utils.toWei('10', 'ether'), { from: accs.adminAddr });
+    await eadToken.approve(ethereumAdsValidatorPools.address, web3.utils.toWei('10000', 'ether'), { from: accs.adminAddr });
+    await ethereumAdsValidatorPools.stake(_valPoolAddr, web3.utils.toWei('10000', 'ether'), { from: accs.adminAddr });
 
     const validatorInfoJSON = JSON.stringify({
         endpoint: "endpoint",

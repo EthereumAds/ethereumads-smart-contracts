@@ -2,7 +2,7 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-contract QueueAddress {
+contract QueueBytes32 {
     mapping(uint => bytes32) queue;
     uint public first = 1;
     uint public last = 0;

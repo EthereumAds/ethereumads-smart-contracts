@@ -60,11 +60,15 @@ contract("EthereumAds", accounts => {
     it("should process click from different ip", async () => {
         await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr1, "CLICKDATA2", keccak("IPDATA2"), rewardable, true, { from: accs.validatorAddr1 });
         await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr2, "CLICKDATA2", keccak("IPDATA2"), rewardable, true, { from: accs.validatorAddr2 });
+        accs.publisherBal4 = await daiToken.balanceOf(accs.publisherAddr);
+        assert.notEqual(round(accs.publisherBal3), round(accs.publisherBal4), "Payment after 2 validations");
     });
 
-    it("should reject duplicate click from same ip", async () => {
-        await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr1, "CLICKDATA", keccak("IPDATA"), rewardable, true, { from: accs.validatorAddr1 }).should.be.rejected;
-        await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr2, "CLICKDATA", keccak("IPDATA"), rewardable, true, { from: accs.validatorAddr2 }).should.be.rejected;
+    it("should not pay for duplicate clicks from same ip", async () => {
+        await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr1, "CLICKDATA", keccak("IPDATA"), rewardable, true, { from: accs.validatorAddr1 });
+        await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr2, "CLICKDATA", keccak("IPDATA"), rewardable, true, { from: accs.validatorAddr2 });
+        accs.publisherBal5 = await daiToken.balanceOf(accs.publisherAddr);
+        assert.equal(round(accs.publisherBal4), round(accs.publisherBal5), "No additional payments");
     });
 
     it("should only be possible for EthereumAds contract to mint EAD", async () => {

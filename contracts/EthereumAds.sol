@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./libs/UintSetLib.sol";
 import "./libs/NativeMetaTransaction.sol";
 import "./libs/ContextMixin.sol";
-import "./libs/QueueAddress.sol";
+import "./libs/QueueBytes32.sol";
 import "./EthereumAdsLib.sol";
 
 
@@ -29,12 +29,11 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
     mapping(address => uint) minimumCpc;
     mapping(address => bool) tokenApproval;
     mapping(bytes32 => Click) public clicks; 
-    mapping(bytes32 => bool) public ips;
     mapping(string => address) public affiliates;
 
     address[] public tokenWhiteList;
 
-    QueueAddress clicksQueue;
+    QueueBytes32 clicksQueue;
 
     address public eadAddr;
     address public eadTokenRewardsAddr;
@@ -69,7 +68,7 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
         uint[] approvals; 
         uint[] disapprovals;
         uint[] validatorSet;
-        bool clickCounted;
+        bool paid;
         uint timestamp;
     }
 
@@ -165,7 +164,7 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
         inactivityTimeout = 60 seconds;
 
-        clicksQueue = new QueueAddress();
+        clicksQueue = new QueueBytes32();
         _initializeEIP712('EthereumAds', '1');
     }
 
@@ -376,24 +375,6 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
     } 
 
 
-    /** 
-        @notice Punishes validator pool by slashing staked EAD tokens if no vote was cast within inactivityTimeout.
-        @dev Is called automatically in processClick by dequeuing.
-    */
-    function slashForInactivity(bytes32 _clickId) public returns(bool) {
-        if (block.timestamp.sub(clicks[_clickId].timestamp) > inactivityTimeout) {
-            for (uint i=0; i<clicks[_clickId].validatorSet.length;i++) {
-                if (!EthereumAdsLib.isUintInArray(clicks[_clickId].approvals, clicks[_clickId].validatorSet[i]) && !EthereumAdsLib.isUintInArray(clicks[_clickId].disapprovals, clicks[_clickId].validatorSet[i])) {
-                    eadValidatorPools.slash(clicks[_clickId].validatorSet[i], slashingAmount);
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-
     /**
         @notice Called by each validator subset signer to process a click event received from the adviewer
         @dev Calls payments(...) when validator super-majority is reached, _ipHash has not reached payments before, and campaign has funds and allowance to pay 
@@ -403,7 +384,6 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
         
         require(tokenApproval[campaign.tokenAddr], "TOKEN NOT APPROVED");
         require(campaign.cpc >= minimumCpc[campaign.tokenAddr], "CPC TOO LOW");
-        require(!ips[_ipHash], "IPHASH REACHED PAYMENTS BEFORE");
         require(_entities.publisher != _entities.publisherAff, "CANNOT BE OWN AFFILIATE");
 
         eadCampaigns.transferRequirements(_entities.campaign);
@@ -436,7 +416,6 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
         if (clicks[clickId].timestamp == 0) {
             clicks[clickId].timestamp = block.timestamp;
             clicks[clickId].validatorSet = valPools;
-            clicksQueue.enqueue(clickId);
         }
 
         if (_pool != 0) {
@@ -454,6 +433,10 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
             }
         }
         
+        if (clicks[clickId].paid) {
+            return false;
+        }
+
         //proposal: should disapproval count negative?
         if (clicks[clickId].approvals.length * 100 < (EthereumAdsLib.countUnique(valPools) * 66)) {
             return false;
@@ -461,8 +444,10 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
         payments(_entities, campaign, valPools, _clickDataJSON, clickId, _rewardable);
         
+        clicksQueue.enqueue(clickId);
+
         //proposal: garbage collection?
-        ips[_ipHash] = true; 
+        clicks[clickId].paid = true; 
 
         return true;
     }
@@ -472,6 +457,24 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
     function _msgSender() override internal view returns (address payable sender) {
         return ContextMixin.msgSender();
+    }
+
+
+    /** 
+        @notice Punishes validator pool by slashing staked EAD tokens if no vote was cast within inactivityTimeout.
+        @dev Is called automatically in processClick by dequeuing.
+    */
+    function slashForInactivity(bytes32 _clickId) internal returns(bool) {
+        if (block.timestamp.sub(clicks[_clickId].timestamp) > inactivityTimeout) {
+            for (uint i=0; i<clicks[_clickId].validatorSet.length;i++) {
+                if (!EthereumAdsLib.isUintInArray(clicks[_clickId].approvals, clicks[_clickId].validatorSet[i]) && !EthereumAdsLib.isUintInArray(clicks[_clickId].disapprovals, clicks[_clickId].validatorSet[i])) {
+                    eadValidatorPools.slash(clicks[_clickId].validatorSet[i], slashingAmount);
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
     }
 
 

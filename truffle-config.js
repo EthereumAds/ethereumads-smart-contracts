@@ -55,7 +55,8 @@ module.exports = {
       production: true    // Treats this network as if it was a public net. (default: false)
      },
      mainnet: { 
-      // alternative RPC: https://rpc-mainnet.maticvigil.com/v1/a0c0ef79467d594a6a4e703f55cae2946671ed06
+      //provider: () => new HDWalletProvider([process.env.PRIVATE_KEY], "https://rpc-mainnet.maticvigil.com/v1/a0c0ef79467d594a6a4e703f55cae2946671ed06"),
+      // alternative RPC: 
       provider: () => new HDWalletProvider([process.env.PRIVATE_KEY], "https://rpc-mainnet.matic.network"),
       network_id: 137,   // This network is yours, in the cloud.
       gasPrice: 1000000000, // 1gwei
