@@ -21,6 +21,8 @@ contract("EthereumAds", accounts => {
 
         await stakeValPool(accs.valPoolAddr1, accs.validatorAddr1);
         await stakeValPool(accs.valPoolAddr2, accs.validatorAddr2);
+        await stakeValPool(accs.valPoolAddr3, accs.validatorAddr3);
+        await stakeValPool(accs.valPoolAddr4, accs.validatorAddr4);
     });
 
     it("should create campaign and approve funds", async () => {
@@ -31,13 +33,22 @@ contract("EthereumAds", accounts => {
         if (!advertiserAffiliateName) {
             advertiserAffiliate = accs.zeroAddr;
         } else {
-            advertiserAffiliate = ethereumAds.affiliates(advertiserAffiliate).call();
+            advertiserAffiliate = ethereumAds.affiliates(advertiserAffiliate);
         }
         // rate limited to 10 clicks in 1 hour
-        const campaignTx = await ethereumAdsCampaigns.createCampaign(web3.utils.toWei('1', 'ether'), 3600, 10, daiAddr, advertiserAffiliate, "BANNER", accs.valPoolAddr2, { from: accs.advertiserAddr });
+        const campaignTx = await ethereumAdsCampaigns.createCampaign(web3.utils.toWei('1', 'ether'), 3600, 10, daiAddr, advertiserAffiliate, "BANNER", accs.zeroAddr, { from: accs.advertiserAddr });
         accs.campaignAddr = campaignTx.logs[0].args.campaign.toString();
 
         await daiToken.approve(ethereumAdsCampaigns.address, web3.utils.toWei('5', 'ether'), { from: accs.advertiserAddr });
+
+        const valPools = await ethereumAds.getValidatorSubSetInfo(accs.publisherAddr, accs.advertiserAddr);
+        //console.log('valpools', valPools);
+        /*
+            '{"endpoint":"endpoint","gunPublicKey":"","address":"4"}',
+            '{"endpoint":"endpoint","gunPublicKey":"","address":"2"}',
+            '{"endpoint":"endpoint","gunPublicKey":"","address":"2"}',
+            '{"endpoint":"endpoint","gunPublicKey":"","address":"1"}'
+        */
     });
 
     let pcArgs, rewardable = true;
@@ -45,6 +56,7 @@ contract("EthereumAds", accounts => {
         pcArgs = [accs.zeroAddr, "", accs.publisherAddr, "", accs.campaignAddr];
         accs.publisherBal1 = await daiToken.balanceOf(accs.publisherAddr);
 
+        console.log('pooladdr', accs.valPoolAddr1);
         await ethereumAds.processClickWithAffiliateNames(...pcArgs, accs.zeroAddr, accs.valPoolAddr1, "CLICKDATA", keccak("IPDATA"), rewardable, true, { from: accs.validatorAddr1 });
         accs.publisherBal2 = await daiToken.balanceOf(accs.publisherAddr);
 

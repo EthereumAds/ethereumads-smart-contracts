@@ -71,7 +71,6 @@ library EthereumAdsLib {
 
 
 
-
     function isStringEmpty(string memory _emptyStringTest) internal pure returns(bool) {
         bytes memory tempEmptyStringTest = bytes(_emptyStringTest);
         return tempEmptyStringTest.length == 0;
@@ -117,6 +116,7 @@ library EthereumAdsLib {
         }
         return true;
     }
+
 
     function countNonZero(uint[] memory _arr) internal pure returns(uint) {
         uint count = 0; 

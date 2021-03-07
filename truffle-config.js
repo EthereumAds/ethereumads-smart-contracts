@@ -62,6 +62,7 @@ module.exports = {
       gasPrice: 1000000000, // 1gwei
       production: true,    // Treats this network as if it was a public net. (default: false)
       skipDryRun: true,
+      timeoutBlocks: 200, // # of blocks before a deployment times out (minimum/default: 50)
      },
     // Another network with more advanced options...
     // advanced: {

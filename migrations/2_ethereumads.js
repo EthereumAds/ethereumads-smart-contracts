@@ -12,8 +12,8 @@ let eadToken, adminAddr, ethereumAdsValidatorPools, eadTokenRewards, daiToken, w
 const PRODUCTION = true;
 
 async function stakeValPool(_valPoolAddr, subdomain) {
-  await eadToken.approve(ethereumAdsValidatorPools.address, web3.utils.toWei('10000', 'ether'), {from: adminAddr});
-  await ethereumAdsValidatorPools.stake(_valPoolAddr, web3.utils.toWei('10000', 'ether'), {from: adminAddr});
+  await eadToken.approve(ethereumAdsValidatorPools.address, web3.utils.toWei('1000', 'ether'), {from: adminAddr});
+  await ethereumAdsValidatorPools.stake(_valPoolAddr, web3.utils.toWei('1000', 'ether'), {from: adminAddr});
 
   let endpoint;
   if (PRODUCTION) {
@@ -50,7 +50,7 @@ module.exports = async function (deployer, network, accounts) {
     await eadToken.initialize( "TestCoin", "TST", 18, childChainManagerProxy, { from: adminAddr});
   }
 
-  await eadToken.mint(adminAddr, web3.utils.toWei('30', 'mether'), { from: adminAddr});
+  await eadToken.mint(adminAddr, web3.utils.toWei('40', 'mether'), { from: adminAddr});
 
   ethereumAds = await deployProxy(EthereumAds, { deployer, initializer:false, unsafeAllowCustomTypes: true });
 
@@ -64,7 +64,7 @@ module.exports = async function (deployer, network, accounts) {
   await eadTokenRewards.initialize(ethereumAds.address, ethereumAdsValidatorPools.address, web3.utils.toWei('100', 'mether'), { from: adminAddr});
 
   const slashAddr = adminAddr;
-  await ethereumAds.initialize(adminAddr, eadToken.address, eadTokenRewards.address, ethereumAdsCampaigns.address, ethereumAdsValidatorPools.address, slashAddr, 10, 10, web3.utils.toWei('10000', 'ether'), web3.utils.toWei('1', 'ether'), { from: adminAddr});
+  await ethereumAds.initialize(adminAddr, eadToken.address, eadTokenRewards.address, ethereumAdsCampaigns.address, ethereumAdsValidatorPools.address, slashAddr, 10, 10, web3.utils.toWei('1000', 'ether'), web3.utils.toWei('1', 'ether'), { from: adminAddr});
 
   const MINTER_ROLE = await eadToken.MINTER_ROLE(); 
   await eadToken.grantRole(MINTER_ROLE, eadTokenRewards.address, { from: adminAddr});

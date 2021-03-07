@@ -310,42 +310,6 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
 
     /**
-        @notice Select validator pool in which token t falls if we put all tokens of validator pools from public validator pool set in a row
-                next to each other
-    */
-    function validatorAtToken(uint t, uint[] memory _excluded) public view returns(uint) {
-        uint sum = 0;
-        for (uint i=0; i<validatorSet.count(); i++) {
-            if (EthereumAdsLib.isUintInArray(_excluded, validatorSet.keyAtIndex(i))) {
-                continue;
-            }
-            uint balance = eadValidatorPools.eadTotalSupply(validatorSet.keyAtIndex(i));
-            if (t >= sum && t < sum.add(balance)) {
-                return validatorSet.keyAtIndex(i);
-            }
-            sum = sum.add(balance);
-        }
-        revert("VALIDATORATTOKEN FAULTY");
-    }
-
-
-    /**
-        @notice Calculates the sum of all EAD tokens staked in public validator set excluding validators in exclusion list.
-    */
-    function validatorSetTotalStakeExcluded(uint[] memory _excluded) public view returns(uint) {
-        uint sum = 0;
-        for (uint i=0; i<validatorSet.count(); i++) {
-            if (EthereumAdsLib.isUintInArray(_excluded, validatorSet.keyAtIndex(i))) {
-                continue;
-            }
-            uint balance = eadValidatorPools.eadTotalSupply(validatorSet.keyAtIndex(i));
-            sum = sum.add(balance);
-        }
-        return sum;
-    }
-
-
-    /**
         @notice Calculates a validator subset of length _len based on _hash without using validator pools in _excluded.
                 The probability of a validator pool being selected is linearly proportional to its EthereumAds (EAD) token stake.
         @dev Random token is uniformly selected from [0, N] with N representing the sum of all EAD tokens staked in public validator set
@@ -358,11 +322,10 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
         }
 
         uint[] memory subSet = new uint[](_len);
-
-        for(uint i=0; i < _len; i++) {
-            uint[] memory excludedPlus = EthereumAdsLib.concatenateUintArrays(subSet, _excluded);
-            uint rndToken = uint(_hash).mod(validatorSetTotalStakeExcluded(excludedPlus));
-            uint validator = validatorAtToken(rndToken, excludedPlus);
+        
+        while(EthereumAdsLib.countNonZero(subSet) != _len) {
+            uint rndToken = uint(_hash).mod(validatorSet.count());
+            uint validator = validatorSet.keyAtIndex(rndToken);
             if (!EthereumAdsLib.isUintInArray(subSet, validator) && !EthereumAdsLib.isUintInArray(_excluded, validator)) {
                 EthereumAdsLib.insertIntoArray(subSet, validator);
             }
@@ -370,7 +333,7 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
         }
 
         assert(EthereumAdsLib.countNonZero(subSet) == _len);
-
+        
         return subSet;
     } 
 
