@@ -196,4 +196,5 @@ interface IEthereumAds {
     function eadAddr() external returns(address);
     function signerCommission() external returns(uint);
     function getTokenWhiteList() external view returns(address[] memory);
+    function getSetValPoolsFromCampaigns(address _participant, bool _isPublisher, uint _valPool) external returns(uint[] memory);
 }

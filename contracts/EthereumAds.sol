@@ -132,9 +132,10 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
     event LogValidatorAssignment(
         address indexed addr,
-        string indexed userType,
-        uint[] valPools,
-        string[] validatorInfoJSON
+        bool indexed isPublisher, // otherwise advertiser 
+        uint index,
+        uint indexed valPool,
+        string validatorInfoJSON
     );
 
 
@@ -225,10 +226,8 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
     }
 
 
-    function getValidatorSubSetInfo(address _publisher, address _advertiser) external view returns(string[] memory) {
-        uint[] memory pValPools = getValPool(_publisher);
-        uint[] memory aValPools = getValPool(_advertiser);
-        uint[] memory valPools = EthereumAdsLib.concatenateUintArrays(pValPools, aValPools);
+    function getValidatorSubSetInfo(address _participant) external view returns(string[] memory) {
+        uint[] memory valPools = getValPools(_participant);
         return getValidatorInfoJSON(valPools);
     }
 
@@ -282,6 +281,12 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
     }
 
 
+    function getSetValPoolsFromCampaigns(address _participant, bool _isPublisher, uint _valPool) external returns(uint[] memory) {
+        require(_msgSender() == campaignsAddr, "NOT CAMPAIGNS");
+        return getSetValPools(_participant, _isPublisher, _valPool);
+    }
+
+
     /**
         @dev currently unused, but potentially useful in the future
     */
@@ -311,10 +316,7 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
     /**
         @notice Calculates a validator subset of length _len based on _hash without using validator pools in _excluded.
-                The probability of a validator pool being selected is linearly proportional to its EthereumAds (EAD) token stake.
-        @dev Random token is uniformly selected from [0, N] with N representing the sum of all EAD tokens staked in public validator set
-             excluding validators in exclusion list. Selection is calculated by modulo operation of uint represenation of hash and N. 
-             Assumption: uint(hash)) >> N
+                The probability of a validator pool being selected is independent from its EthereumAds (EAD) token stake.
     */
     function calcValidatorSubSet(bytes32 _hash, uint _len, uint[] memory _excluded) public view returns(uint[] memory) {
         if (_len >= validatorSet.count()) {
@@ -331,8 +333,6 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
             }
             _hash = keccak256(abi.encode(_hash, validator));
         }
-
-        assert(EthereumAdsLib.countNonZero(subSet) == _len);
         
         return subSet;
     } 
@@ -366,15 +366,15 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
             }
         }
 
-        uint[] memory valPools = getSetValPools(_entities.publisher, _entities.campaignOwner);
+        uint[] memory pValPools = getSetValPools(_entities.publisher, true, 0);
+        uint[] memory aValPools = getSetValPools(_entities.campaignOwner, false, aValPool);
 
+        // cannot be put into getSetValPools(...) because malicious change would be possible
         if (_pValPool != 0) {
-            valPools[0] = _pValPool;
+            pValPools[0] = _pValPool;
         }
 
-        if (aValPool != 0) {
-            valPools[valPools.length-1] = aValPool;
-        }
+        uint[] memory valPools = EthereumAdsLib.concatenateUintArrays(pValPools, aValPools);
 
         if (clicks[clickId].timestamp == 0) {
             clicks[clickId].timestamp = block.timestamp;
@@ -416,7 +416,7 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
     }
 
 
-    // internal function
+    // internal functions
 
     function _msgSender() override internal view returns (address payable sender) {
         return ContextMixin.msgSender();
@@ -476,9 +476,9 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
 
 
     /**
-        @notice Gets the validator pool for given address
+        @notice Gets the validator pools for given address
     */
-    function getValPool(address p) internal view returns(uint[] memory) {
+    function getValPools(address p) internal view returns(uint[] memory) {
         uint[] memory pValPools;
         if (participants[p].validators.length > 0) {
             // validator pools have already been set, only replace validators in case they were removed from public validator set
@@ -491,22 +491,21 @@ contract EthereumAds is Initializable, AccessControlUpgradeable, NativeMetaTrans
     }
 
 
-    function getSetValPools(address _publisher, address _advertiser) internal returns(uint[] memory) {
-        uint[] memory pValPools = getValPool(_publisher);
+    function getSetValPools(address _participant, bool _isPublisher, uint _valPool) internal returns(uint[] memory) {
+        uint[] memory valPools = getValPools(_participant);
 
-        if (!EthereumAdsLib.arraysEqual(participants[_publisher].validators, pValPools)) {
-            participants[_publisher].validators = pValPools;
-            emit LogValidatorAssignment(_publisher, "publisher", pValPools, getValidatorInfoJSON(pValPools));
+        if (_valPool != 0) {
+            valPools[valPools.length-1] = _valPool;
         }
 
-        uint[] memory aValPools = getValPool(_advertiser);
-
-        if (!EthereumAdsLib.arraysEqual(participants[_advertiser].validators, aValPools)) {
-            participants[_advertiser].validators = aValPools;
-            emit LogValidatorAssignment(_advertiser, "advertiser", aValPools, getValidatorInfoJSON(aValPools));
+        for (uint i = 0; i < valPools.length; i++) {
+            if (participants[_participant].validators.length < i+1 || participants[_participant].validators[i] != valPools[i]) {
+                emit LogValidatorAssignment(_participant, _isPublisher, i, valPools[i], eadValidatorPools.validatorInfoJSON(valPools[i]));
+            }
         }
 
-        uint[] memory valPools = EthereumAdsLib.concatenateUintArrays(pValPools, aValPools);
+        participants[_participant].validators = valPools;
+
         return valPools;
     }
 

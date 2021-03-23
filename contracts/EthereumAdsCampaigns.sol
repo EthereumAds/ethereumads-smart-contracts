@@ -24,6 +24,7 @@ contract EthereumAdsCampaigns is Initializable, AccessControlUpgradeable, Native
     bytes32 public constant ETHEREUMADS_ROLE = keccak256("ETHEREUMADS_ROLE");
 
     uint public numCampaigns;
+    IEthereumAds ethereumAds;
 
     mapping(uint => EthereumAdsLib.Campaign) public campaigns;
  
@@ -31,16 +32,20 @@ contract EthereumAdsCampaigns is Initializable, AccessControlUpgradeable, Native
     event LogResetAllowance(address indexed owner, uint indexed campaign);
     event LogCampaignEvent(
         uint indexed campaign,
+        uint indexed valPool,
         address indexed advertiser,
         uint cpc,
         uint timeframe, 
         uint clicksPerTimeframe,
         string advertJSON,
-        uint8 indexed action // 0:create, 1: change, 2: close, 3: withdraw
+        uint8 action // 0:create, 1: change, 2: close, 3: withdraw
     );
 
+
     function initialize(address _ethereumAdsAddr) public initializer {
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setupRole(ETHEREUMADS_ROLE, _ethereumAdsAddr);
+        setupEthereumAds(_ethereumAdsAddr);
         _initializeEIP712('EthereumAdsCampaigns', '1');
     }
 
@@ -65,7 +70,9 @@ contract EthereumAdsCampaigns is Initializable, AccessControlUpgradeable, Native
         campaign.transferQueue = new QueueUint();
         campaign.token = IERC20Upgradeable(_tokenAddr);
 
-        emit LogCampaignEvent(numCampaigns, _msgSender(), _cpc, _timeframe, _clicksPerTimeframe,  _advertJSON, 0);
+        ethereumAds.getSetValPoolsFromCampaigns(campaign.owner, false, campaign.valPool);
+
+        emit LogCampaignEvent(numCampaigns, _valPool, _msgSender(), _cpc, _timeframe, _clicksPerTimeframe,  _advertJSON, 0);
         return numCampaigns;
     } 
 
@@ -77,7 +84,7 @@ contract EthereumAdsCampaigns is Initializable, AccessControlUpgradeable, Native
         campaigns[n].cpc = _cpc;
         campaigns[n].timeframe = _timeframe;
         campaigns[n].clicksPerTimeframe = _clicksPerTimeframe;
-        emit LogCampaignEvent(numCampaigns, _msgSender(), _cpc, _timeframe, _clicksPerTimeframe,  _advertJSON, 1);
+        emit LogCampaignEvent(numCampaigns, campaigns[n].valPool, _msgSender(), _cpc, _timeframe, _clicksPerTimeframe,  _advertJSON, 1);
     } 
 
 
@@ -120,6 +127,12 @@ contract EthereumAdsCampaigns is Initializable, AccessControlUpgradeable, Native
 
 
     // public functions
+
+    function setupEthereumAds(address _ethereumAdsAddr) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "NOT ADMIN");
+        ethereumAds = IEthereumAds(_ethereumAdsAddr);
+    }
+
 
     /** 
         @notice Makes sures a set of requirements is met before transfers are allowed

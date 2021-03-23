@@ -41,8 +41,9 @@ contract("EthereumAds", accounts => {
 
         await daiToken.approve(ethereumAdsCampaigns.address, web3.utils.toWei('5', 'ether'), { from: accs.advertiserAddr });
 
-        const valPools = await ethereumAds.getValidatorSubSetInfo(accs.publisherAddr, accs.advertiserAddr);
-        //console.log('valpools', valPools);
+        const valPools1 = await ethereumAds.getValidatorSubSetInfo(accs.publisherAddr);
+        const valPools2 = await ethereumAds.getValidatorSubSetInfo(accs.advertiserAddr);
+        console.log('valpools1', valPools1, valPools2);
         /*
             '{"endpoint":"endpoint","gunPublicKey":"","address":"4"}',
             '{"endpoint":"endpoint","gunPublicKey":"","address":"2"}',
